@@ -18,16 +18,15 @@ type PlugMiddlewareFunction = (
   next: Function,
 ) => void
 
-type PlugHandlerFunction = (
+type PlugControllerFunction = (
   eventData: any,
   resEmitters: PlugResponseEmitters,
   execEmitter: Function,
 ) => void
 
-
-type PlugHandlerData = {
+type PlugControllerData = {
   route: string;
-  handler: PlugHandlerFunction;
+  controller: PlugControllerFunction;
   middlewares: Array<PlugMiddlewareFunction>;
 }
 
@@ -37,7 +36,7 @@ export class PlugRouter {
   io?: Server;
 
   rootRoute: string = '';
-  handlersData: Array<PlugHandlerData> = [];
+  controllersData: Array<PlugControllerData> = [];
 
   constructor() {}
   
@@ -48,27 +47,27 @@ export class PlugRouter {
 
   attachToSocket(socket: Socket): void {
     if (this.rootRoute && this.io) {
-      this.handlersData.map((handlerData: PlugHandlerData) => {
-        this.attachHandlerToSocket(socket, handlerData)
+      this.controllersData.map((controllerData: PlugControllerData) => {
+        this.attachControllerToSocket(socket, controllerData)
       })
     }
   }
 
-  addRouteHandler(route: string, middlewares: Array<PlugMiddlewareFunction> = [], handler: PlugHandlerFunction): void {
-    const handlerData: PlugHandlerData = {
+  addRouteController(route: string, middlewares: Array<PlugMiddlewareFunction> = [], controller: PlugControllerFunction): void {
+    const controllerData: PlugControllerData = {
       route: route.startsWith(':') ? route : ':' + route, 
-      handler, 
+      controller, 
       middlewares
     }
-    this.handlersData.push(handlerData);
+    this.controllersData.push(controllerData);
   }
 
-  private attachHandlerToSocket(socket: Socket, handlerData: PlugHandlerData): void {
+  private attachControllerToSocket(socket: Socket, controllerData: PlugControllerData): void {
     if (this.rootRoute && this.io) {
       socket.on(
-        this.rootRoute + handlerData.route, 
-        (eventData, ack) => this.runHandler(
-          handlerData,
+        this.rootRoute + controllerData.route, 
+        (eventData, ack) => this.runController(
+          controllerData,
           eventData, 
           this.getResponseEmitters(ack), 
           this.getExecuteEmitter(socket),
@@ -77,14 +76,14 @@ export class PlugRouter {
     }
   }
 
-  private runHandler(
-    handlerData: PlugHandlerData,
+  private runController(
+    controllerData: PlugControllerData,
     eventData: any, 
     responseEmitters: PlugResponseEmitters, 
     executeEmitter: Function,
   ): void {
-    const runHandler = () => {
-      handlerData.handler(
+    const runController = () => {
+      controllerData.controller(
         eventData, 
         responseEmitters, 
         executeEmitter,
@@ -92,13 +91,13 @@ export class PlugRouter {
     }
 
     const runMiddleware = (middleware: Function, middlewareIndex: number) => {
-      if (middlewareIndex < handlerData.middlewares.length) {
-        if (middlewareIndex === (handlerData.middlewares.length - 1)) {
+      if (middlewareIndex < controllerData.middlewares.length) {
+        if (middlewareIndex === (controllerData.middlewares.length - 1)) {
           middleware(
             eventData, 
             responseEmitters, 
             executeEmitter,
-            () => runHandler()
+            () => runController()
           )
         } else {
           middleware(
@@ -106,15 +105,15 @@ export class PlugRouter {
             responseEmitters, 
             executeEmitter,
             () => runMiddleware(
-              handlerData.middlewares[middlewareIndex + 1], 
+              controllerData.middlewares[middlewareIndex + 1], 
               middlewareIndex + 1
             ))
         }
       }
     }
 
-    if (handlerData.middlewares && (handlerData.middlewares.length > 0)) {
-      runMiddleware(handlerData.middlewares[0], 0)
+    if (controllerData.middlewares && (controllerData.middlewares.length > 0)) {
+      runMiddleware(controllerData.middlewares[0], 0)
     }
   }
 

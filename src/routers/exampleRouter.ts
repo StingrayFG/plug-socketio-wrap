@@ -1,14 +1,14 @@
 import { PlugRouter } from '@/plug/plug';
 
-import exampleHandlers from '@/handlers/exampleHandlers';
+import exampleControllers from '@/controllers/exampleControllers';
 import exampleMiddlewares from '@/middlewares/exampleMiddlewares';
 
 
 const exampleRouter = new PlugRouter();
 
-exampleRouter.addRouteHandler('get', 
+exampleRouter.addRouteController('get', 
   [exampleMiddlewares.exampleMiddleware1, exampleMiddlewares.exampleMiddleware2], 
-  exampleHandlers.exampleHandler)
+  exampleControllers.exampleController)
 
 
 export default exampleRouter;
