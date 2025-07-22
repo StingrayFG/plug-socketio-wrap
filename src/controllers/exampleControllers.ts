@@ -3,9 +3,9 @@ import exampleEmitters from '@/emitters/exampleEmitters';
 
 
 const exampleControllers = {
-  exampleController: (eventData: any, resEmitters: PlugResponseEmitters, execEmitter: Function) => {
-    resEmitters.emitResponseWithCode(200, { exampleValue: eventData.exampleValue * 2});
-    execEmitter(exampleEmitters.emitExampleBroadcastEvent, 'example')
+  exampleController: async (eventData: any, resEmitters: PlugResponseEmitters, execEmitter: Function): Promise<any> => {
+    execEmitter(exampleEmitters.emitExampleBroadcastEvent, 'example');
+    return resEmitters.emitResponseWithCode(200, { exampleValue: eventData.exampleValue * 2});
   }
 }
 

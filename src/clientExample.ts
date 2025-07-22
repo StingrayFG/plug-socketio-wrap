@@ -19,7 +19,7 @@ const runGetRequest = (data: any) => {
 }
 
 const runExampleRequests = () => {
-  runGetRequest({ exampleValue: -1 });
+  runGetRequest({ exampleValue: -2 });
   runGetRequest({ exampleValue: 3 });
   runGetRequest({ exampleValue: 2 });
 }

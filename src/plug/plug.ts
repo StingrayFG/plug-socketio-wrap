@@ -16,13 +16,13 @@ type PlugMiddlewareFunction = (
   resEmitters: PlugResponseEmitters,
   execEmitter: Function,
   next: Function,
-) => void
+) => Promise<any>
 
 type PlugControllerFunction = (
   eventData: any,
   resEmitters: PlugResponseEmitters,
   execEmitter: Function,
-) => void
+) => Promise<any>
 
 type PlugControllerData = {
   route: string;
@@ -66,7 +66,7 @@ export class PlugRouter {
     if (this.rootRoute && this.io) {
       socket.on(
         this.rootRoute + controllerData.route, 
-        (eventData, ack) => this.runController(
+        (eventData, ack) => this.runControllerAndMiddlewares(
           controllerData,
           eventData, 
           this.getResponseEmitters(ack), 
@@ -76,44 +76,41 @@ export class PlugRouter {
     }
   }
 
-  private runController(
+  private async runControllerAndMiddlewares(
     controllerData: PlugControllerData,
     eventData: any, 
     responseEmitters: PlugResponseEmitters, 
     executeEmitter: Function,
-  ): void {
-    const runController = () => {
-      controllerData.controller(
+  ): Promise<any> {
+
+    const runController = async (): Promise<any> => {
+     await controllerData.controller(
         eventData, 
         responseEmitters, 
         executeEmitter,
       )
     }
 
-    const runMiddleware = (middleware: Function, middlewareIndex: number) => {
+    const runMiddleware = async (middlewareIndex: number): Promise<any> => {
       if (middlewareIndex < controllerData.middlewares.length) {
         if (middlewareIndex === (controllerData.middlewares.length - 1)) {
-          middleware(
-            eventData, 
-            responseEmitters, 
-            executeEmitter,
-            () => runController()
-          )
+          await controllerData.middlewares[middlewareIndex](eventData, responseEmitters, executeEmitter,
+          async () => {
+            await runController();
+          })
         } else {
-          middleware(
-            eventData, 
-            responseEmitters, 
-            executeEmitter,
-            () => runMiddleware(
-              controllerData.middlewares[middlewareIndex + 1], 
-              middlewareIndex + 1
-            ))
+          await controllerData.middlewares[middlewareIndex](eventData, responseEmitters, executeEmitter,
+          async () => {
+            await runMiddleware(middlewareIndex + 1);
+          })
         }
       }
     }
 
     if (controllerData.middlewares && (controllerData.middlewares.length > 0)) {
-      runMiddleware(controllerData.middlewares[0], 0)
+      await runMiddleware(0);
+    } else {
+      await runController();
     }
   }
 
